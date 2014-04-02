@@ -95,6 +95,7 @@ type
   function getJSonList(Data : String; Key : String) : ArrayOfString;
   function ParseJsonList(inputJson : String) : ArrayOfString;
   function IfThen(condition :boolean; trueVal :String ; falseVal : String) : string;
+  function EscapeString(input : string) : string;
 implementation
 
 constructor ELinkhubException.Create(code : LongInt; Message : String);
@@ -317,6 +318,35 @@ begin
                 ms.Free;
         end;
 end;
+function EscapeString(input : string) : string;
+begin
+        result := input;
+        result := ReplaceString(result,'\','\\');
+        result := ReplaceString(result,'/','\/');
+        result := ReplaceString(result,'"','\"');
+        result := ReplaceString(result,'''','\''');
+        result := ReplaceString(result,#8,'\b');
+        result := ReplaceString(result,#9,'\t');
+        result := ReplaceString(result,#10,'\n');
+        result := ReplaceString(result,#12,'\f');
+        result := ReplaceString(result,#13,'\r');
+
+end;
+
+function UnescapeString(input : string) : string;
+begin
+        result := input;
+        result := ReplaceString(result,'\\','\');
+        result := ReplaceString(result,'\/','/');
+        result := ReplaceString(result,'\"','"');
+        result := ReplaceString(result,'\''','''');
+        result := ReplaceString(result,'\b',#8);
+        result := ReplaceString(result,'\t',#9);
+        result := ReplaceString(result,'\n',#10);
+        result := ReplaceString(result,'\f',#12);
+        result := ReplaceString(result,'\r',#13);
+
+end;
 
 function Utf8ToUnicode(Dest: PWideChar; MaxDestChars: Cardinal; Source: PChar; SourceBytes: Cardinal): Cardinal;
 	var
@@ -478,7 +508,7 @@ begin
                         Result := '';
                 end
                 else begin
-                        Result := Copy(Data,StartPos,EndPos-StartPos);
+                        Result := UnescapeString(Copy(Data,StartPos,EndPos-StartPos));
                 end;
         end;
 end;
@@ -666,5 +696,9 @@ begin
 
   result := ddtt;
 end;
+
+
+
+
 
 end.
