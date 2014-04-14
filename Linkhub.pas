@@ -32,8 +32,8 @@ uses
   Windows, SysUtils, Classes, HTTPSend , ssl_openssl, synachar, synautil, synacode;
 
 const
-  ServiceURL_REAL = 'https://api.linkhub.co.kr';
-  ServiceURL_TEST = 'https://demo.innopost.com';
+  ServiceURL_REAL = 'https://auth.linkhub.co.kr';
+  ServiceURL_TEST = 'https://demos.innopost.com';
   APIVersion = '1.0';
 
 type
@@ -51,8 +51,6 @@ type
     function getToken(ServiceID : String; access_id : String; scope : array Of String; forwardIP : String) : TToken; overload;
     function getBalance(bearerToken : String; ServiceID : String) : Double;
     function getPartnerBalance(bearerToken : String; ServiceID : String) : Double;
-  published
-    property IsTest : boolean read FIsTest write FIsTest;
   end;
 
   TToken = class
