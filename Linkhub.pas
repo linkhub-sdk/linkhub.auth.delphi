@@ -31,6 +31,18 @@ interface
 uses
   Windows, SysUtils, Classes, HTTPSend , ssl_openssl, synachar, synautil, synacode;
 
+{$DEFINE HAS_ENCODING}
+
+{$IFDEF VER150}
+{$UNDEF HAS_ENCODING}
+{$ENDIF}
+{$IFDEF VER140}
+{$UNDEF HAS_ENCODING}
+{$ENDIF}
+{$IFDEF VER130}
+{$UNDEF HAS_ENCODING}
+{$ENDIF}
+
 const
   ServiceURL_REAL = 'https://auth.linkhub.co.kr';
   ServiceURL_TEST = 'https://demos.innopost.com';
@@ -39,7 +51,7 @@ const
 type
   TToken = class;
   ArrayOfString = Array Of String;
-  
+
   TAuth = class
   private
     FIsTest    : boolean;
@@ -301,6 +313,18 @@ begin
         Result := SystemTimeToDateTime(system_datetime);
 end;
 
+{$IFDEF HAS_ENCODING}
+function StreamToString(Stream: TStream): WideString;
+begin
+    with TStringStream.Create('',TEncoding.UTF8) do
+    try
+        CopyFrom(Stream, Stream.Size - Stream.Position);
+        Result := DataString;
+    finally
+        Free;
+    end;
+end;
+{$ELSE}
 function StreamToString(Stream: TStream): WideString;
 var
         ms: TMemoryStream;
@@ -316,6 +340,8 @@ begin
                 ms.Free;
         end;
 end;
+{$ENDIF}
+
 function EscapeString(input : string) : string;
 begin
         result := input;
@@ -700,3 +726,4 @@ end;
 
 
 end.
+
