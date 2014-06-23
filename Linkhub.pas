@@ -70,10 +70,10 @@ type
   TAuth = class
   private
     FIsTest    : boolean;
-    FPartnerID : string;
+    FLinkID : string;
     FSecretKey : string;
   public
-    constructor  Create(PartnerID : string; SecretKey : string);
+    constructor  Create(LinkID : string; SecretKey : string);
     function getToken(ServiceID : String; access_id : String; scope : array Of String) : TToken; overload;
     function getToken(ServiceID : String; access_id : String; scope : array Of String; forwardIP : String) : TToken; overload;
     function getBalance(bearerToken : String; ServiceID : String) : Double;
@@ -84,7 +84,7 @@ type
   private
         Fsession_token : string;
         FserviceID : string;
-        FpartnerID : string;
+        FlinkID : string;
         Fusercode : string;
         Fexpiration : string;
         Fipaddress : string;
@@ -92,7 +92,7 @@ type
   public
       property session_token : string read Fsession_token write Fsession_token;
       property serviceID : string read FserviceID write FserviceID;
-      property partnerID : string read FpartnerID write FpartnerID;
+      property linkID : string read FlinkID write FlinkID;
       property usercode : string read Fusercode write Fusercode;
       property expiration : string read Fexpiration write Fexpiration;
       property ipaddress : string read Fipaddress write Fipaddress;
@@ -129,9 +129,9 @@ inherited Create(Message);
 FCode := code;
 end;
 
-constructor TAuth.Create(PartnerID : string; SecretKey : string);
+constructor TAuth.Create(LinkID : string; SecretKey : string);
 begin
-     FPartnerID := PartnerID;
+     FLinkID := LinkID;
      FSecretKey := SecretKey;
      FIsTest := false;
 end;
@@ -195,7 +195,7 @@ begin
 
   bearerToken := EncodeBase64(HMAC_SHA1(target,DecodeBase64( FSecretKey)));
 
-  HTTP.Headers.Add('Authorization: LINKHUB '+FPartnerID+' ' + bearerToken);
+  HTTP.Headers.Add('Authorization: LINKHUB ' + FLinkID + ' ' + bearerToken);
 
   if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/Token'
              else url := ServiceURL_REAL + '/' + ServiceID + '/Token';
@@ -217,7 +217,7 @@ begin
 
          Result.session_token := getJSonString(response,'session_token');
          Result.serviceID := getJSonString(response,'serviceID');
-         Result.partnerID := getJSonString(response,'partnerID');
+         Result.linkID := getJSonString(response,'linkID');
          Result.usercode := getJSonString(response,'usercode');
          Result.ipaddress := getJSonString(response,'ipaddress');
          Result.expiration := getJSonString(response,'expiration');
