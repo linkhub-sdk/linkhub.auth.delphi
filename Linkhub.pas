@@ -115,6 +115,7 @@ type
   function Utf8ToUnicode(Dest: PWideChar; MaxDestChars: Cardinal; Source: PChar; SourceBytes: Cardinal): Cardinal;
   function UnicodeToUtf8(Dest: PChar; MaxDestBytes: Cardinal; Source: PWideChar; SourceChars: Cardinal): Cardinal;
   function getJSonString(Data : String; Key : String) : String;
+  function getJSonBoolean(Data : String; Key : String) : Boolean;
   function getJSonInteger(Data : String; Key : String) : Integer;
   function getJSonFloat(Data : String; Key : String) : Double;
   function getJSonList(Data : String; Key : String) : ArrayOfString;
@@ -518,6 +519,38 @@ begin
 	Result := count+1;  // convert zero based index to byte count
 end;
 
+function getJSonBoolean(Data : String; Key : String) : Boolean;
+var
+        StartPos : integer;
+	EndPos : integer;
+        val : String;
+begin
+	StartPos := Pos('"' + Key + '":',Data);
+
+        if StartPos = 0 then
+        begin
+                Result := null;
+        end
+        else
+        begin
+                StartPos := StartPos  + Length('"' + Key + '":');
+                if Copy(Data,StartPos,1) = '"' then StartPos := StartPos + 1;
+
+                EndPos := PosFrom(',',Data,StartPos);
+                if EndPos = 0 then EndPos := posFrom('}',Data,StartPos);
+                if EndPos = 0 then Raise ELinkhubException.Create(-99999999,'malformed json');
+
+                EndPos := EndPos;
+
+                if StartPos = EndPos then begin
+                        Result := null;
+                end
+                else begin
+                        val := Copy(Data,StartPos,EndPos-StartPos);
+                        result := val = 'true';
+                end;
+        end;
+end;
 
 function getJSonString(Data : String; Key : String) : String;
 var
