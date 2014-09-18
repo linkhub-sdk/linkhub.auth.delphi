@@ -529,7 +529,7 @@ begin
 
         if StartPos = 0 then
         begin
-                Result := null;
+                Result := false;
         end
         else
         begin
@@ -543,7 +543,7 @@ begin
                 EndPos := EndPos;
 
                 if StartPos = EndPos then begin
-                        Result := null;
+                        Result := false;
                 end
                 else begin
                         val := Copy(Data,StartPos,EndPos-StartPos);
