@@ -57,6 +57,21 @@ uses
 {$IFDEF VER130}
 {$UNDEF HAS_ENCODING}
 {$ENDIF}
+{$IFDEF VER240}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER250}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER260}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER270}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER280}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
 
 const
   ServiceURL_REAL = 'https://auth.linkhub.co.kr';
@@ -733,16 +748,16 @@ var
 begin
   
   // save Delphi settings
-  DS := DateSeparator;
-  TS := TimeSeparator;
-  ShortDF := ShortDateFormat;
-  ShortTF := ShortTimeFormat;
+  DS := {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}DateSeparator;
+  TS := {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}TimeSeparator;
+  ShortDF := {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortDateFormat;
+  ShortTF := {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortTimeFormat;
 
   // set Delphi settings for string to date/time
-  DateSeparator := '-';
-  ShortDateFormat := 'yyyy-mm-dd';
-  TimeSeparator := ':';
-  ShortTimeFormat := 'hh:mm:ss';
+  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}DateSeparator := '-';
+  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortDateFormat := 'yyyy-mm-dd';
+  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}TimeSeparator := ':';
+  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortTimeFormat := 'hh:mm:ss';
 
   // convert test string to datetime
   try
@@ -761,10 +776,10 @@ begin
   ddtt := ((ddtt * 1440) + TimeZoneBias) /1440;
 
   // restore Delphi settings
-  DateSeparator := DS;
-  ShortDateFormat := ShortDF;
-  TimeSeparator := TS;
-  ShortTimeFormat := ShortTF;
+  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}DateSeparator := DS;
+  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortDateFormat := ShortDF;
+  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}TimeSeparator := TS;
+  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortTimeFormat := ShortTF;
 
   result := ddtt;
 end;
