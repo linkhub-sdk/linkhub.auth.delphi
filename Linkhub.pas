@@ -596,6 +596,7 @@ begin
                 end
                 else begin
                         Result := UnescapeString(Copy(Data,StartPos,EndPos-StartPos));
+                        Result := ReplaceString(Result, '&', '&&');
                 end;
         end;
 end;
