@@ -57,21 +57,6 @@ uses
 {$IFDEF VER130}
 {$UNDEF HAS_ENCODING}
 {$ENDIF}
-{$IFDEF VER240}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER250}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER260}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER270}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER280}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
 
 const
   ServiceURL_REAL = 'https://auth.linkhub.co.kr';
@@ -134,7 +119,9 @@ type
   function getJSonInteger(Data : String; Key : String) : Integer;
   function getJSonFloat(Data : String; Key : String) : Double;
   function getJSonList(Data : String; Key : String) : ArrayOfString;
+  function getJSonListString(Data : String; Key : String) : ArrayOfString;
   function ParseJsonList(inputJson : String) : ArrayOfString;
+  function ParseTotalJsonList(inputJson : String) : ArrayOfString;
   function IfThen(condition :boolean; trueVal :String ; falseVal : String) : string;
   function EscapeString(input : string) : string;
 implementation
@@ -228,9 +215,7 @@ begin
                 raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
          end;
          response := StreamToString(HTTP.Document);
-
-
-
+         
          Result.session_token := getJSonString(response,'session_token');
          Result.serviceID := getJSonString(response,'serviceID');
          Result.linkID := getJSonString(response,'linkID');
@@ -596,7 +581,6 @@ begin
                 end
                 else begin
                         Result := UnescapeString(Copy(Data,StartPos,EndPos-StartPos));
-                        Result := ReplaceString(Result, '&', '&&');
                 end;
         end;
 end;
@@ -672,6 +656,7 @@ var
         StartPos : integer;
 	EndPos : integer;
         targetJson : String;
+        count : integer;
 begin
 	StartPos := Pos('"' + Key + '":',Data);
 
@@ -690,7 +675,7 @@ begin
                 if EndPos = 0 then EndPos := PosFrom('}',Data,StartPos);
                 if EndPos = 0 then raise ELinkhubException.Create(-99999999,'JSON PARSING ERROR');
 
-                if Copy(Data,EndPos-1,1) = '"' then EndPos := EndPos - 1;
+                if Copy(Data,EndPos-1,1) = '"' then EndPos := EndPos;
 
                 if StartPos = EndPos then begin
                         targetJson := '';
@@ -702,10 +687,92 @@ begin
         end;
 end;
 
+function getJSonListString(Data : String; Key : String) : ArrayOfString;
+var
+        StartPos : integer;
+	EndPos : integer;
+        targetJson : String;
+        count : integer;
+        i : integer;
+begin
+	StartPos := Pos('"' + Key + '":',Data);
+
+        if StartPos = 0 then
+        begin
+                targetJson := '';
+        end
+        else
+        begin
+                StartPos := StartPos  + Length('"' + Key + '":');
+                if Copy(Data,StartPos,1) = '[' then StartPos := StartPos + 1;
+
+                count := 0;
+                
+                for i := StartPos-1 to Length(Data) do
+                begin
+                        if Data[i] = '[' then
+                        begin
+                            count := count + 1;
+                            if count = 1 then startpos := i + 1;
+                        end;
+
+                        if Data[i] = ']' then
+                        begin
+                             count := count - 1;
+                             if count = 0 then endpos := i;
+                        end;
+                end;
+
+                if EndPos = 0 then EndPos := PosFrom('}',Data,StartPos);
+                if EndPos = 0 then raise ELinkhubException.Create(-99999999,'JSON PARSING ERROR');
+
+                if Copy(Data,EndPos-1,1) = '"' then EndPos := EndPos;
+
+                if StartPos = EndPos then begin
+                        targetJson := '';
+                end
+                else begin
+                        targetJson := Copy(Data,StartPos,EndPos-StartPos);
+                        result:= ParseTotalJsonList(targetJson);
+                end;
+        end;
+end;
+
+function ParseTotalJsonList(inputJson : String) : ArrayOfString;
+var
+        delimiter, i,level,startpos,endpos,count : integer;
+begin
+        startpos := 0;
+        count := 0;
+        SetLength(result,count);
+        level := 0;
+
+        for i:=0 to Length(inputJson) do
+        begin
+                if inputJson[i] = '{' then
+                begin
+                    level := level + 1;
+                    if level  = 1 then startpos := i;
+                end;
+
+                if inputJson[i] = '}' then
+                begin                                                      
+                    level := level - 1;
+                    if level  = 0 then
+                    begin
+                         count := count + 1;
+                         SetLength(result,count);
+                         endpos := i;
+                         result[count - 1 ] := Copy(inputJson,startpos,endpos-startpos + 1);
+                    end
+                end;
+        end;
+end;
+
+
 function ParseJsonList(inputJson : String) : ArrayOfString;
 var
-        i,level,startpos,endpos,count : integer;
-
+        delimiter, i,level,startpos,endpos,count : integer;
 begin
         startpos := 0;
         count := 0;
@@ -731,6 +798,37 @@ begin
                     end
                 end;
         end;
+
+        // '}' 가 포함되지 않은 경우 ["data", "data2"]
+        if count = 0 then
+        begin
+            delimiter := 1;
+            for i:=0 to Length(inputJson) do
+            begin
+
+                if inputJson[i] = '"' then
+                begin
+                        delimiter := delimiter mod 2;
+
+                        if delimiter = 1 then
+                        begin
+                            startpos := i + 1;
+                            delimiter := delimiter + 1;
+                            Continue;
+                        end;
+
+                        if delimiter = 0 then
+                        begin
+                            delimiter := delimiter + 1;
+                            endpos := i-1;
+                            count := count + 1;
+                            SetLength(result,count);
+                            result[count-1] := Copy(inputJson, startpos, endpos-startpos+1);
+                        end;
+
+                end;
+            end;
+        end;
 end;
 
 function IfThen(condition :boolean; trueVal :String ; falseVal : String) : string;
@@ -749,16 +847,16 @@ var
 begin
   
   // save Delphi settings
-  DS := {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}DateSeparator;
-  TS := {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}TimeSeparator;
-  ShortDF := {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortDateFormat;
-  ShortTF := {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortTimeFormat;
+  DS := DateSeparator;
+  TS := TimeSeparator;
+  ShortDF := ShortDateFormat;
+  ShortTF := ShortTimeFormat;
 
   // set Delphi settings for string to date/time
-  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}DateSeparator := '-';
-  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortDateFormat := 'yyyy-mm-dd';
-  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}TimeSeparator := ':';
-  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortTimeFormat := 'hh:mm:ss';
+  DateSeparator := '-';
+  ShortDateFormat := 'yyyy-mm-dd';
+  TimeSeparator := ':';
+  ShortTimeFormat := 'hh:mm:ss';
 
   // convert test string to datetime
   try
@@ -777,17 +875,11 @@ begin
   ddtt := ((ddtt * 1440) + TimeZoneBias) /1440;
 
   // restore Delphi settings
-  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}DateSeparator := DS;
-  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortDateFormat := ShortDF;
-  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}TimeSeparator := TS;
-  {$IFDEF COMPILER15_UP}FormatSettings.{$ENDIF}ShortTimeFormat := ShortTF;
+  DateSeparator := DS;
+  ShortDateFormat := ShortDF;
+  TimeSeparator := TS;
+  ShortTimeFormat := ShortTF;
 
   result := ddtt;
 end;
-
-
-
-
-
 end.
-
