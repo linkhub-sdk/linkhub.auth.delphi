@@ -674,7 +674,6 @@ var
         StartPos : integer;
 	EndPos : integer;
         targetJson : String;
-        count : integer;
 begin
 	StartPos := Pos('"' + Key + '":',Data);
 
@@ -714,7 +713,8 @@ var
         i : integer;
 begin
 	StartPos := Pos('"' + Key + '":',Data);
-
+        EndPos := 0;
+        
         if StartPos = 0 then
         begin
                 targetJson := '';
@@ -758,7 +758,7 @@ end;
 
 function ParseTotalJsonList(inputJson : String) : ArrayOfString;
 var
-        delimiter, i,level,startpos,endpos,count : integer;
+        i,level,startpos,endpos,count : integer;
 begin
         startpos := 0;
         count := 0;
