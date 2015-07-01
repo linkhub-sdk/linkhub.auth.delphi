@@ -1311,6 +1311,7 @@ begin
                 end
                 else begin
                         Result := UnescapeString(Copy(Data,StartPos,EndPos-StartPos));
+                        if Copy(Result,0,4) = 'null' then Result := '';
                 end;
         end;
 end;
