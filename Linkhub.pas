@@ -254,16 +254,16 @@ begin
 
   bearerToken := EncodeBase64(HMAC_SHA1(target,DecodeBase64( FSecretKey)));
 
-  http:=createoleobject('WinHttp.WinHttpRequest.5.1');
+  http:=createoleobject('MSXML2.XMLHTTP.6.0');
   http.open('POST',url);
 
   http.setRequestHeader('x-lh-date', xdate);
   http.setRequestHeader('x-lh-version', '1.0');
+  http.setRequestHeader('Accept-Encoding','gzip,deflate');
   if forwardIP <> '' then HTTP.setRequestHeader('x-lh-forwarded',forwardIP);
   http.setRequestHeader('Authorization', 'LINKHUB ' + FLinkID + ' ' + bearerToken);
 
   http.send(postdata);
-  http.WaitForResponse;
 
   response := http.responsetext;
   if http.Status <> 200 then
@@ -292,12 +292,11 @@ begin
   if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/Point'
              else url := ServiceURL_REAL + '/' + ServiceID + '/Point';
 
-  http:=createoleobject('WinHttp.WinHttpRequest.5.1');
+  http:=createoleobject('MSXML2.XMLHTTP.6.0');
   http.open('GET',url);
   http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
-
+  http.setRequestHeader('Accept-Encoding','gzip,deflate');
   http.send;
-  http.WaitForResponse;
 
   response := http.responsetext;
   if http.Status <> 200 then
@@ -320,12 +319,11 @@ begin
   if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/PartnerPoint'
              else url := ServiceURL_REAL + '/' + ServiceID + '/PartnerPoint';
 
-  http:=createoleobject('WinHttp.WinHttpRequest.5.1');
+  http:=createoleobject('MSXML2.XMLHTTP.6.0');
   http.open('GET',url);
   http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
-
+  http.setRequestHeader('Accept-Encoding','gzip,deflate');
   http.send;
-  http.WaitForResponse;
 
   response := http.responsetext;
   if http.Status <> 200 then
