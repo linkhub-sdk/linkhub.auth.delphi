@@ -139,6 +139,7 @@ type
     function getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String) : TToken; overload;
     function getBalance(bearerToken : String; ServiceID : String) : Double;
     function getPartnerBalance(bearerToken : String; ServiceID : String) : Double;
+    function GetTime : String;
   end;
 
   TToken = class
@@ -169,7 +170,6 @@ type
     property code : LongInt read FCode write FCode;
   end;
 
-  function NowUTC: TDateTime;
   function UTCToDate(strDT : string) : TDateTime;
   function StreamToString(Stream: TStream): WideString;
   function Utf8ToUnicode(Dest: PWideChar; MaxDestChars: Cardinal; Source: PChar; SourceBytes: Cardinal): Cardinal;
@@ -203,6 +203,31 @@ begin
      FIsTest := false;
 end;
 
+function TAuth.GetTime() : String;
+var
+  url   : String;
+  response : String;
+  http : olevariant;
+begin
+  if FIsTest then url := ServiceURL_TEST + '/Time'
+             else url := ServiceURL_REAL + '/Time';
+
+  http:=createoleobject('MSXML2.XMLHTTP.6.0');
+  http.open('GET',url);
+  http.setRequestHeader('Accept-Encoding','gzip,deflate');
+  http.send;
+
+  response := http.responsetext;
+  if http.Status <> 200 then
+  begin
+    raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+  end
+  else
+  begin
+    Result := response;
+end;
+
+end;
 function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String) : TToken;
 begin
         result := getToken(ServiceID,access_id,scope,'');
@@ -243,7 +268,7 @@ begin
 
   postdata := '{' + postdata + '}';
 
-  xdate := FormatDateTime('yyyy-mm-dd''T''HH:mm:ss.zzz''Z''',NowUTC);
+  xdate := getTime();
 
   target := 'POST' + #10;
   target := target + EncodeBase64(md5(postdata)) + #10;
@@ -335,14 +360,6 @@ begin
     Result := strToFloat(getJSonString(response,'remainPoint'));
  end;
 
-end;
-
-function NowUTC: TDateTime;
-var
-        system_datetime: TSystemTime;
-begin
-        GetSystemTime(system_datetime);
-        Result := SystemTimeToDateTime(system_datetime);
 end;
 
 {$IFDEF HAS_ENCODING}
