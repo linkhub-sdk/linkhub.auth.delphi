@@ -89,6 +89,9 @@ uses
 {$IFDEF VER290}
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
+{$IFDEF VER300}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
 
 const
   ServiceURL_REAL = 'https://auth.linkhub.co.kr';
