@@ -1500,7 +1500,7 @@ begin
 
         for i:=0 to Length(inputJson) do
         begin
-                if inputJson[i] = '"' then comment := not comment;
+                if (inputJson[i] = '"') and ((i = 0) or (inputJson[i-1] <> #47)) then comment := not comment;
                 if comment then continue;
                 
                 if inputJson[i] = '{' then
@@ -1537,7 +1537,7 @@ begin
 
         for i:=0 to Length(inputJson) do
         begin
-                if inputJson[i] = '"' then comment := not comment;
+                if (inputJson[i] = '"') and ((i = 0) or (inputJson[i-1] <> #47)) then comment := not comment;
                 if comment then continue;
                 if inputJson[i] = '{' then
                 begin
@@ -1600,7 +1600,7 @@ begin
         while( index <= Length(Data) ) do
         begin
                 case Data[index] of
-                       #47: index :=index + 1;
+                       #47: index := index + 1;
                        #34: bComment := not bComment;
                        '[': if not bComment then llevel := llevel + 1;
                        ']':
