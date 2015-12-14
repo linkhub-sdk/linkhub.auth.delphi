@@ -191,6 +191,7 @@ type
   function EncodeBase64(const Value: AnsiString): String;
   function DecodeBase64(const Value: String): AnsiString;
   function HMAC_SHA1(Text, Key: AnsiString): AnsiString;
+  function skiptoSquareBracket(Data : String; index : integer) : integer;
 implementation
 
 constructor ELinkhubException.Create(code : LongInt; Message : String);
@@ -1417,9 +1418,8 @@ begin
                 StartPos := StartPos  + Length('"' + Key + '":');
                 if Copy(Data,StartPos,1) = '[' then StartPos := StartPos + 1;
 
-                //이건좀 문제가 있음. value안에 ','가 있을경우 잘리는 문제가 있음.
-                EndPos := PosFrom(']',Data,StartPos);
-                //문서안에 '}'가 있으면 문제가 있어버림.
+                EndPos :=skiptoSquareBracket(Data,StartPos);
+
                 if EndPos = 0 then EndPos := PosFrom('}',Data,StartPos);
                 if EndPos = 0 then raise ELinkhubException.Create(-99999999,'JSON PARSING ERROR');
 
@@ -1490,14 +1490,19 @@ end;
 function ParseTotalJsonList(inputJson : String) : ArrayOfString;
 var
         i,level,startpos,endpos,count : integer;
+        comment : boolean;
 begin
         startpos := 0;
         count := 0;
         SetLength(result,count);
         level := 0;
+        comment := false;
 
         for i:=0 to Length(inputJson) do
         begin
+                if inputJson[i] = '"' then comment := not comment;
+                if comment then continue;
+                
                 if inputJson[i] = '{' then
                 begin
                     level := level + 1;
@@ -1522,14 +1527,18 @@ end;
 function ParseJsonList(inputJson : String) : ArrayOfString;
 var
         delimiter, i,level,startpos,endpos,count : integer;
+        comment : boolean;
 begin
         startpos := 0;
         count := 0;
         SetLength(result,count);
         level := 0;
+        comment := false;
 
         for i:=0 to Length(inputJson) do
         begin
+                if inputJson[i] = '"' then comment := not comment;
+                if comment then continue;
                 if inputJson[i] = '{' then
                 begin
                     level := level + 1;
@@ -1578,6 +1587,33 @@ begin
                 end;
             end;
         end;
+end;
+
+function skiptoSquareBracket(Data : String; index : integer) : integer;
+var
+        bComment : boolean;
+        llevel : integer;
+begin
+        bComment:=false;
+        llevel := 0;
+
+        while( index <= Length(Data) ) do
+        begin
+                case Data[index] of
+                       #47: index :=index + 1;
+                       #34: bComment := not bComment;
+                       '[': if not bComment then llevel := llevel + 1;
+                       ']':
+                       begin
+                                if not bComment then
+                                begin
+                                        if llevel <= 1 then break else llevel := llevel -1;
+                                end;
+                       end;
+                end;
+                index := index +1;
+        end;
+        result := index;
 end;
 
 function IfThen(condition :boolean; trueVal :String ; falseVal : String) : string;
