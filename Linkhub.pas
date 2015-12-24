@@ -1608,7 +1608,7 @@ begin
                        begin
                                 if not bComment then
                                 begin
-                                        if llevel <= 1 then break else llevel := llevel -1;
+                                        if llevel < 1 then break else llevel := llevel -1;
                                 end;
                        end;
                 end;
