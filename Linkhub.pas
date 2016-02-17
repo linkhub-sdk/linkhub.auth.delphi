@@ -163,6 +163,7 @@ type
       property ipaddress : string read Fipaddress write Fipaddress;
       property scope : ArrayOfString read Fscope write Fscope;
 
+      destructor Destroy; override;
   end;
 
   ELinkhubException  = class(Exception)
@@ -193,6 +194,12 @@ type
   function HMAC_SHA1(Text, Key: AnsiString): AnsiString;
   function skiptoSquareBracket(Data : String; index : integer) : integer;
 implementation
+
+destructor TToken.Destroy;
+begin
+  setlength(FScope,0);
+  FScope := nil;
+end;
 
 constructor ELinkhubException.Create(code : LongInt; Message : String);
 begin
