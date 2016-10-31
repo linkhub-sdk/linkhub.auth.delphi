@@ -17,11 +17,17 @@
 * And also, dlls must be released with your executions. That's the drawback of this
 * module, but we acommplished higher security level against that.
 *
+*
 * http://www.linkhub.co.kr
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Written : 2014-03-22
-
-* Thanks for your interest. 
+*
+* Contributor : Jeong Yohan
+* Updated : 2016-10-28
+*
+* Updated Log (2016-10-28)
+* added Double Byte Code System Character delimiter function on EscapeString()
+*
 *=================================================================================
 *)
 {$IFDEF FPC}
@@ -402,9 +408,16 @@ begin
 end;
 {$ENDIF}
 
+
 function EscapeString(input : string) : string;
 begin
         result := input;
+
+        if ByteType(result, length(result)) = mbLeadByte then
+        begin
+                result := Copy(result, 1, length(result)-1);
+        end;
+
         result := StringReplace(result,'\','\\',[rfReplaceAll]);
         result := StringReplace(result,'/','\/',[rfReplaceAll]);
         result := StringReplace(result,'"','\"',[rfReplaceAll]);
