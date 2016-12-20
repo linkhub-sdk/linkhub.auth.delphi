@@ -23,10 +23,11 @@
 * Written : 2014-03-22
 *
 * Contributor : Jeong Yohan
-* Updated : 2016-10-28
+* Updated : 2016-12-20
 *
-* Updated Log (2016-10-28)
-* added Double Byte Code System Character delimiter function on EscapeString()
+* Updated Log
+* - (2016-12-20) : added VersionInfo for Delphi 10.1 berlin
+* - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
 *
 *=================================================================================
 *)
@@ -96,6 +97,9 @@ uses
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
 {$IFDEF VER300}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER310}
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
 
