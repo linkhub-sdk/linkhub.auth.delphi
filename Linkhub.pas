@@ -3,29 +3,17 @@
 * Unit for develop interoperation with Linkhub APIs.
 * Functionalities are authentication for Linkhub api products, and to support
 * several base infomation(ex. Remain point).
-*
-* This module uses synapse library.( http://www.ararat.cz/synapse/doku.php/ )
-* It's full open source library, free to use include commercial application.
-* If you wish to donate that, visit their site.
-* So, before using this module, you need to install synapse by user self.
-* You can refer their site or detailed infomation about installation is available
-* from below our site. We appreciate your visiting.
-*
+
 * For strongly secured communications, this module uses SSL/TLS with OpenSSL.
-* So You need two dlls (libeay32.dll and ssleay32.dll) from OpenSSL. You can
-* get it from Fulgan. ( http://indy.fulgan.com/SSL/ ) We recommend i386_win32 version.
-* And also, dlls must be released with your executions. That's the drawback of this
-* module, but we acommplished higher security level against that.
-*
 *
 * http://www.linkhub.co.kr
 * Author : Kim Seongjun (pallet027@gmail.com)
-* Written : 2014-03-22
-*
 * Contributor : Jeong Yohan
-* Updated : 2016-12-20
+* Written : 2014-03-22
+* Updated : 2017-03-08
 *
-* Updated Log
+* Update Log
+* - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2016-12-20) : added VersionInfo for Delphi 10.1 berlin
 * - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
 *
@@ -226,29 +214,35 @@ end;
 
 function TAuth.GetTime() : String;
 var
-  url   : String;
-  response : String;
-  http : olevariant;
+        url   : String;
+        response : String;
+        http : olevariant;
 begin
-  if FIsTest then url := ServiceURL_TEST + '/Time'
-             else url := ServiceURL_REAL + '/Time';
+        if FIsTest then url := ServiceURL_TEST + '/Time'
+                else url := ServiceURL_REAL + 'd/Time';
 
-  http:=createoleobject('MSXML2.XMLHTTP.6.0');
-  http.open('GET',url);
-  http.setRequestHeader('Accept-Encoding','gzip,deflate');
-  http.send;
+        try
+                http := createoleobject('MSXML2.XMLHTTP.6.0');
+                http.open('GET',url);
+                http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.send;
+        except
+                On E : Exception do
+                        raise ELinkhubException.Create(-99999999, 'Fail to GetTime() - ['+ E.ClassName + '] '+ E.Message);
+        end;
 
-  response := http.responsetext;
-  if http.Status <> 200 then
-  begin
-    raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
-  end
-  else
-  begin
-    Result := response;
+        response := http.responsetext;
+        
+        if http.Status <> 200 then
+        begin       
+                raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+        end
+        else
+        begin
+                Result := response;
+        end;
 end;
 
-end;
 function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String) : TToken;
 begin
         result := getToken(ServiceID,access_id,scope,'');
@@ -256,77 +250,86 @@ end;
 
 function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String) : TToken;
 var
-  xdate : String;
-  target : String;
-  postdata : olevariant;
-  bearerToken : String;
-  url   : String;
-  i : Integer;
-  response : string;
-  http : olevariant;
+        xdate : String;
+        target : String;
+        postdata : olevariant;
+        bearerToken : String;
+        url   : String;
+        i : Integer;
+        response : string;
+        http : olevariant;
 begin
-  if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/Token'
-             else url := ServiceURL_REAL + '/' + ServiceID + '/Token';
+        if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/Token'
+                else url := ServiceURL_REAL + '/' + ServiceID + '/Token';
 
-  postdata := '"access_id":"'+access_id+'"';
+        postdata := '"access_id":"'+access_id+'"';
 
-  if length(scope) > 0 then
-  begin
-    postdata := postdata + ',"scope":[';
-    for i := 0 to length(scope)-1 do
-    begin
-         postdata := postdata + '"' + scope[i] + '"';
-         if i < length(scope) -1 then
-         begin
-            postdata := postdata + ',';
-         end
-         else
-         begin
-           postdata := postdata + ']';
-         end
-    end;
-  end;
+        if length(scope) > 0 then
+        begin
+                postdata := postdata + ',"scope":[';
+                for i := 0 to length(scope)-1 do
+                begin
+                        postdata := postdata + '"' + scope[i] + '"';
+                        if i < length(scope) -1 then
+                        begin
+                                postdata := postdata + ',';
+                        end
+                        else
+                        begin
+                                postdata := postdata + ']';
+                        end
+                end;
+        end;
 
-  postdata := '{' + postdata + '}';
+        try
+                postdata := '{' + postdata + '}';
 
-  xdate := getTime();
+                xdate := getTime();
 
-  target := 'POST' + #10;
-  target := target + EncodeBase64(md5(postdata)) + #10;
-  target := target + xdate + #10;
-  if forwardIP <> '' then target := target + forwardIP + #10;
-  target := target + APIVersion + #10;
-  target := target + '/'+ServiceID+'/Token';
+                target := 'POST' + #10;
+                target := target + EncodeBase64(md5(postdata)) + #10;
+                target := target + xdate + #10;
 
-  bearerToken := EncodeBase64(HMAC_SHA1(target,DecodeBase64( FSecretKey)));
+                if forwardIP <> '' then target := target + forwardIP + #10;
+                target := target + APIVersion + #10;
+                target := target + '/'+ServiceID+'/Token';
 
-  http:=createoleobject('MSXML2.XMLHTTP.6.0');
-  http.open('POST',url);
+                bearerToken := EncodeBase64(HMAC_SHA1(target,DecodeBase64( FSecretKey)));
+        
+                http := createoleobject('MSXML2.XMLHTTP.6.0');
+                http.open('POST',url);
 
-  http.setRequestHeader('x-lh-date', xdate);
-  http.setRequestHeader('x-lh-version', '1.0');
-  http.setRequestHeader('Accept-Encoding','gzip,deflate');
-  if forwardIP <> '' then HTTP.setRequestHeader('x-lh-forwarded',forwardIP);
-  http.setRequestHeader('Authorization', 'LINKHUB ' + FLinkID + ' ' + bearerToken);
+                http.setRequestHeader('x-lh-date', xdate);
+                http.setRequestHeader('x-lh-version', '1.0');
+                http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                if forwardIP <> '' then HTTP.setRequestHeader('x-lh-forwarded',forwardIP);
+                http.setRequestHeader('Authorization', 'LINKHUB ' + FLinkID + ' ' + bearerToken);
 
-  http.send(postdata);
+                http.send(postdata);
+        except
+                On LE : ELinkhubException do
+                        raise ELinkhubException.Create(-99999999, LE.Message);
+                On E : Exception do
+                        raise ELinkhubException.Create(-99999999, 'Fail to GetToken() - ['+ E.ClassName + '] '+ E.Message);
+        end;
+                
 
-  response := http.responsetext;
-  if http.Status <> 200 then
-  begin
-    raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
-  end
-  else
-  begin
-    Result := TToken.Create;
-
-    Result.session_token := getJSonString(response,'session_token');
-    Result.serviceID := getJSonString(response,'serviceID');
-    Result.linkID := getJSonString(response,'linkID');
-    Result.usercode := getJSonString(response,'usercode');
-    Result.ipaddress := getJSonString(response,'ipaddress');
-    Result.expiration := getJSonString(response,'expiration');
- end;
+        response := http.responsetext;
+        
+        if http.Status <> 200 then
+        begin
+                raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+        end
+        else
+        begin
+                Result := TToken.Create;
+                Result.session_token := getJSonString(response,'session_token');
+                Result.serviceID := getJSonString(response,'serviceID');
+                Result.linkID := getJSonString(response,'linkID');
+                Result.usercode := getJSonString(response,'usercode');
+                Result.ipaddress := getJSonString(response,'ipaddress');
+                Result.expiration := getJSonString(response,'expiration');
+        end;
 end;
 
 function TAuth.getBalance(bearerToken : String; ServiceID : String) : Double;
@@ -335,52 +338,63 @@ var
   response : string;
   http : olevariant;
 begin
-  if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/Point'
-             else url := ServiceURL_REAL + '/' + ServiceID + '/Point';
+        if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/Point'
+                else url := ServiceURL_REAL + '/' + ServiceID + '/Point';
 
-  http:=createoleobject('MSXML2.XMLHTTP.6.0');
-  http.open('GET',url);
-  http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
-  http.setRequestHeader('Accept-Encoding','gzip,deflate');
-  http.send;
+        try
+                http := createoleobject('MSXML2.XMLHTTP.6.0');
+                http.open('GET', url);
+                http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
+                http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.send;
+        except
+                On E : Exception do
+                        raise ELinkhubException.Create(-99999999, 'Fail to GetBalance() - ['+ E.ClassName + '] '+ E.Message);
+        end;
 
-  response := http.responsetext;
-  if http.Status <> 200 then
-  begin
-    raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
-  end
-  else
-  begin
-    Result := strToFloat(getJSonString(response,'remainPoint'));
- end;
-
+        response := http.responsetext;
+        
+        if http.Status <> 200 then
+        begin
+                raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+        end
+        else
+        begin
+                Result := strToFloat(getJSonString(response,'remainPoint'));
+        end;
 end;
+
 
 function TAuth.getPartnerBalance(bearerToken : String; ServiceID : String) : Double;
 var
-  url   : String;
-  response : string;
-  http : olevariant;
+        url   : String;
+        response : string;
+        http : olevariant;
 begin
-  if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/PartnerPoint'
-             else url := ServiceURL_REAL + '/' + ServiceID + '/PartnerPoint';
+        if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/PartnerPoint'
+        else url := ServiceURL_REAL + '/' + ServiceID + '/PartnerPoint';
 
-  http:=createoleobject('MSXML2.XMLHTTP.6.0');
-  http.open('GET',url);
-  http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
-  http.setRequestHeader('Accept-Encoding','gzip,deflate');
-  http.send;
+        try
+                http := createoleobject('MSXML2.XMLHTTP.6.0');
+                http.open('GET',url);
+                http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
+                http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.send;
+        except
+                On E : Exception do
+                        raise ELinkhubException.Create(-99999999, 'Fail to GetPartnerBalance() - ['+ E.ClassName + '] '+ E.Message);
+        end;
 
-  response := http.responsetext;
-  if http.Status <> 200 then
-  begin
-    raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
-  end
-  else
-  begin
-    Result := strToFloat(getJSonString(response,'remainPoint'));
- end;
-
+        response := http.responsetext;
+        
+        if http.Status <> 200 then
+        begin
+                raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+        end
+        else
+        begin
+                Result := strToFloat(getJSonString(response,'remainPoint'));
+        end;
 end;
 
 {$IFDEF HAS_ENCODING}
