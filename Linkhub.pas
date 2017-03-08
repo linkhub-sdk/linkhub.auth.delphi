@@ -219,7 +219,7 @@ var
         http : olevariant;
 begin
         if FIsTest then url := ServiceURL_TEST + '/Time'
-                else url := ServiceURL_REAL + 'd/Time';
+                else url := ServiceURL_REAL + '/Time';
 
         try
                 http := createoleobject('MSXML2.XMLHTTP.6.0');
