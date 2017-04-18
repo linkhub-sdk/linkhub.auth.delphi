@@ -1343,6 +1343,8 @@ function getJSonString(Data : String; Key : String) : String;
 var
         StartPos : integer;
 	EndPos : integer;
+        special : boolean;
+        i : Integer;
 begin
 	StartPos := Pos('"' + Key + '":',Data);
 
@@ -1355,12 +1357,18 @@ begin
                 StartPos := StartPos  + Length('"' + Key + '":');
                 if Copy(Data,StartPos,1) = '"' then StartPos := StartPos + 1;
 
-                //이건좀 문제가 있음. value안에 '"'가 있을경우 잘리는 문제가 있음.
-                EndPos := PosFrom('"',Data,StartPos);
-
-                while Copy(Data,EndPos-1,1) = '\' do
+                special := false;
+                
+                for EndPos:=StartPos to Length(Data) do
                 begin
-                         EndPos := PosFrom('"',Data,EndPos+1);
+                        if (Data[EndPos] = #92) and (not special) then
+                        begin
+                                special := true;
+                                continue;
+                        end;
+
+                        if (Data[EndPos] = '"') and (not special)then Break;
+                        special := false;
                 end;
 
                 if StartPos = EndPos then begin
@@ -1566,18 +1574,29 @@ function ParseJsonList(inputJson : String) : ArrayOfString;
 var
         delimiter, i,level,startpos,endpos,count : integer;
         comment : boolean;
+        special : boolean;
 begin
         startpos := 0;
         count := 0;
         SetLength(result,count);
         level := 0;
         comment := false;
+        special := false;
 
         for i:=0 to Length(inputJson) do
         begin
-                if (inputJson[i] = '"') and ((i = 0) or (inputJson[i-1] <> #92)) then comment := not comment;
-                if comment then continue;
+                if comment and (inputJson[i] = #92) and (not special)then
+                begin
+                        special := true;
+                        continue;
+                end;
+
+                if ((inputJson[i] = '"') and (not special)) then comment := not comment;
+
+                special := false;
                 
+                if comment then continue;
+                        
                 if inputJson[i] = '{' then
                 begin
                     level := level + 1;
