@@ -10,9 +10,10 @@
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Contributor : Jeong Yohan
 * Written : 2014-03-22
-* Updated : 2017-03-08
+* Updated : 2017-04-18
 *
 * Update Log
+* - (2017-04-18) : fixed Double BackSlash String Parse bug
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2016-12-20) : added VersionInfo for Delphi 10.1 berlin
 * - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
