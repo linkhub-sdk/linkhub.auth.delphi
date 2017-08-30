@@ -10,14 +10,14 @@
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Contributor : Jeong Yohan
 * Written : 2014-03-22
-* Updated : 2017-04-18
+* Updated : 2017-08-29
 *
 * Update Log
+* - (2017-08-29) : GetPartnerURL API added
 * - (2017-04-18) : fixed Double BackSlash String Parse bug
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2016-12-20) : added VersionInfo for Delphi 10.1 berlin
 * - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
-*
 *=================================================================================
 *)
 {$IFDEF FPC}
@@ -142,6 +142,7 @@ type
     function getBalance(bearerToken : String; ServiceID : String) : Double;
     function getPartnerBalance(bearerToken : String; ServiceID : String) : Double;
     function GetTime : String;
+    function getPartnerURL(bearerToken : String; ServiceID : String; TOGO : String) : String;    
   end;
 
   TToken = class
@@ -330,6 +331,38 @@ begin
                 Result.usercode := getJSonString(response,'usercode');
                 Result.ipaddress := getJSonString(response,'ipaddress');
                 Result.expiration := getJSonString(response,'expiration');
+        end;
+end;
+
+function TAuth.getPartnerURL(bearerToken : String; ServiceID : String; TOGO : String) : String;
+var
+  url   : String;
+  response : string;
+  http : olevariant;
+begin
+        if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/URL?TG=' + TOGO
+                else url := ServiceURL_REAL + '/' + ServiceID + '/URL?TG=' + TOGO;
+
+        try
+                http := createoleobject('MSXML2.XMLHTTP.6.0');
+                http.open('GET', url);
+                http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
+                http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.send;
+        except
+                On E : Exception do
+                        raise ELinkhubException.Create(-99999999, 'Fail to GetPartnerURL() - ['+ E.ClassName + '] '+ E.Message);
+        end;
+
+        response := http.responsetext;
+        
+        if http.Status <> 200 then
+        begin
+                raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+        end
+        else
+        begin
+                Result := getJSonString(response,'url');
         end;
 end;
 
