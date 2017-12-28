@@ -10,14 +10,15 @@
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Contributor : Jeong Yohan
 * Written : 2014-03-22
-* Updated : 2017-08-29
+* Updated : 2017-12-28
 *
 * Update Log
-* - (2017-08-29) : GetPartnerURL API added
-* - (2017-04-18) : fixed Double BackSlash String Parse bug
-* - (2017-03-08) : HTTP OleObject Exception Handling
-* - (2016-12-20) : added VersionInfo for Delphi 10.1 berlin
 * - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
+* - (2016-12-20) : added VersionInfo for Delphi 10.1 berlin
+* - (2017-03-08) : HTTP OleObject Exception Handling
+* - (2017-04-18) : fixed Double BackSlash String Parse bug
+* - (2017-08-29) : GetPartnerURL API added
+* - (2017-12-28) : fixed Compile Directive for Update version 
 *=================================================================================
 *)
 {$IFDEF FPC}
@@ -43,53 +44,20 @@ uses
 
 {$DEFINE HAS_ENCODING}
 
-{$IFDEF VER190}
-{$UNDEF HAS_ENCODING}
-{$ENDIF}
-{$IFDEF VER185}
-{$UNDEF HAS_ENCODING}
-{$ENDIF}
-{$IFDEF VER180}
-{$UNDEF HAS_ENCODING}
-{$ENDIF}
-{$IFDEF VER170}
-{$UNDEF HAS_ENCODING}
-{$ENDIF}
-{$IFDEF VER160}
-{$UNDEF HAS_ENCODING}
-{$ENDIF}
-{$IFDEF VER150}
-{$UNDEF HAS_ENCODING}
-{$ENDIF}
-{$IFDEF VER140}
-{$UNDEF HAS_ENCODING}
-{$ENDIF}
 {$IFDEF VER130}
 {$UNDEF HAS_ENCODING}
 {$ENDIF}
-{$IFDEF VER240}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER250}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER260}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER270}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER280}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER290}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER300}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER310}
-{$DEFINE COMPILER15_UP}
+
+{$IFDEF CONDITIONALEXPRESSIONS}
+  {$IF System.CompilerVersion >= 24.0}
+    {$LEGACYIFEND ON}
+    {$DEFINE COMPILER15_UP}
+  {$IFEND}
+  {$IF System.CompilerVersion <= 19.0 }
+    {$IF System.CompilerVersion >= 14.0 }
+      {$UNDEF HAS_ENCODING}
+    {$IFEND}
+  {$IFEND}
 {$ENDIF}
 
 const
