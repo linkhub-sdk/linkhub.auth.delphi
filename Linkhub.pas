@@ -107,9 +107,11 @@ type
     constructor  Create(LinkID : string; SecretKey : string);
     function getToken(ServiceID : string; access_id : string; scope : array Of String) : TToken; overload;
     function getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String) : TToken; overload;
+    function getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String; UseLocalTimeYN : bool) : TToken; overload;
     function getBalance(bearerToken : String; ServiceID : String) : Double;
     function getPartnerBalance(bearerToken : String; ServiceID : String) : Double;
-    function GetTime : String;
+    function GetTime(UseLocalTimeYN : bool) : String; overload;
+    function GetTime : String; overload;
     function getPartnerURL(bearerToken : String; ServiceID : String; TOGO : String) : String;    
   end;
 
@@ -183,42 +185,63 @@ begin
 end;
 
 function TAuth.GetTime() : String;
+begin
+        result := GetTime(false);
+end;
+
+function TAuth.GetTime(UseLocalTimeYN : bool) : String;
 var
         url   : String;
         response : String;
         http : olevariant;
+        UTC : TSystemTime;
+        localTime : string;
 begin
-        if FIsTest then url := ServiceURL_TEST + '/Time'
-                else url := ServiceURL_REAL + '/Time';
-
-        try
-                http := createoleobject('MSXML2.XMLHTTP.6.0');
-                http.open('GET',url);
-                http.setRequestHeader('Accept-Encoding','gzip,deflate');
-                http.send;
-        except
-                On E : Exception do
-                        raise ELinkhubException.Create(-99999999, 'Fail to GetTime() - ['+ E.ClassName + '] '+ E.Message);
-        end;
-
-        response := http.responsetext;
-        
-        if http.Status <> 200 then
-        begin       
-                raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+        if UseLocalTimeYN then
+        begin
+                getSystemTime(UTC);
+                localTime := FormatDateTime('YYYY-MM-DDhh:mm:ss', SystemTimeToDateTime(UTC));
+                Result := Copy(localTime,0,10) + 'T' + Copy(localTime,11,19) + 'Z';
         end
         else
         begin
-                Result := response;
+                if FIsTest then url := ServiceURL_TEST + '/Time'
+                        else url := ServiceURL_REAL + '/Time';
+
+                try
+                        http := createoleobject('MSXML2.XMLHTTP.6.0');
+                        http.open('GET',url);
+                        http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                        http.send;
+                except
+                        On E : Exception do
+                                raise ELinkhubException.Create(-99999999, 'Fail to GetTime() - ['+ E.ClassName + '] '+ E.Message);
+                end;
+
+                response := http.responsetext;
+
+                if http.Status <> 200 then
+                begin
+                        raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+                end
+                else
+                begin
+                        Result := response;
+                end;
         end;
 end;
 
 function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String) : TToken;
 begin
-        result := getToken(ServiceID,access_id,scope,'');
+        result := getToken(ServiceID,access_id,scope,'',false);
 end;
 
 function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String) : TToken;
+begin
+        result := getToken(ServiceID,access_id,scope,forwardIP,false);
+end;
+
+function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String; UseLocalTimeYN : bool) : TToken;
 var
         xdate : String;
         target : String;
@@ -254,7 +277,7 @@ begin
         try
                 postdata := '{' + postdata + '}';
 
-                xdate := getTime();
+                xdate := getTime(UseLocalTimeYN);
 
                 target := 'POST' + #10;
                 target := target + EncodeBase64(md5(postdata)) + #10;
