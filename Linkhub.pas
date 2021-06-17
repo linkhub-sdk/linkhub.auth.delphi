@@ -10,7 +10,7 @@
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Contributor : Jeong Yohan
 * Written : 2014-03-22
-* Updated : 2017-12-28
+* Updated : 2021-06-15
 *
 * Update Log
 * - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
