@@ -62,6 +62,8 @@ uses
 
 const
   ServiceURL_REAL = 'https://auth.linkhub.co.kr';
+  ServiceURL_Static_REAL = 'https://static-auth.linkhub.co.kr';
+  ServiceURL_GA_REAL = 'https://ga-auth.linkhub.co.kr';
   ServiceURL_TEST = 'https://demo.innopost.com';
   APIVersion = '1.0';
   TableBase64 =
@@ -108,11 +110,16 @@ type
     function getToken(ServiceID : string; access_id : string; scope : array Of String) : TToken; overload;
     function getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String) : TToken; overload;
     function getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String; UseLocalTimeYN : bool) : TToken; overload;
-    function getBalance(bearerToken : String; ServiceID : String) : Double;
-    function getPartnerBalance(bearerToken : String; ServiceID : String) : Double;
+    function getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String; UseLocalTimeYN : bool; UseStaticIP : bool; UseGAIP : bool) : TToken; overload;
+    function getBalance(bearerToken : String; ServiceID : String) : Double; overload;
+    function getBalance(bearerToken : String; ServiceID : String; UseStaticIP : bool; UseGAIP : bool) : Double; overload;
+    function getPartnerBalance(bearerToken : String; ServiceID : String) : Double; overload;
+    function getPartnerBalance(bearerToken : String; ServiceID : String; UseStaticIP : bool; UseGAIP : bool) : Double; overload;
+    function GetTime(UseLocalTimeYN : bool; UseStaticIP : bool; UseGAIP : bool) : String; overload;
     function GetTime(UseLocalTimeYN : bool) : String; overload;
     function GetTime : String; overload;
-    function getPartnerURL(bearerToken : String; ServiceID : String; TOGO : String) : String;    
+    function getPartnerURL(bearerToken : String; ServiceID : String; TOGO : String) : String; overload;
+    function getPartnerURL(bearerToken : String; ServiceID : String; TOGO : String; UseStaticIP : bool; UseGAIP : bool) : String; overload;
   end;
 
   TToken = class
@@ -163,6 +170,7 @@ type
   function DecodeBase64(const Value: String): AnsiString;
   function HMAC_SHA1(Text, Key: AnsiString): AnsiString;
   function skiptoSquareBracket(Data : String; index : integer) : integer;
+  function getTargetURL(UseStaticIP : bool; UseGAIP : bool) : String;
 implementation
 
 destructor TToken.Destroy;
@@ -186,10 +194,15 @@ end;
 
 function TAuth.GetTime() : String;
 begin
-        result := GetTime(false);
+        result := GetTime(false, false, false);
 end;
 
 function TAuth.GetTime(UseLocalTimeYN : bool) : String;
+begin
+        result := GetTime(UseLocalTimeYn, false, false)
+end;
+
+function TAuth.GetTime(UseLocalTimeYN : bool; UseStaticIP : bool; UseGAIP : bool) : String;
 var
         url   : String;
         response : String;
@@ -205,9 +218,7 @@ begin
         end
         else
         begin
-                if FIsTest then url := ServiceURL_TEST + '/Time'
-                        else url := ServiceURL_REAL + '/Time';
-
+                url := getTargetURL(UseStaticIP, UseGAIP) + '/Time';
                 try
                         http := createoleobject('MSXML2.XMLHTTP.6.0');
                         http.open('GET',url);
@@ -233,15 +244,20 @@ end;
 
 function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String) : TToken;
 begin
-        result := getToken(ServiceID,access_id,scope,'',false);
+        result := getToken(ServiceID,access_id,scope,'',false,false,false);
 end;
 
 function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String) : TToken;
 begin
-        result := getToken(ServiceID,access_id,scope,forwardIP,false);
+        result := getToken(ServiceID,access_id,scope,forwardIP,false,false,false);
 end;
 
 function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String; UseLocalTimeYN : bool) : TToken;
+begin
+        result := getToken(ServiceID,access_id,scope,forwardIP,UseLocalTimeYN,false,false);
+end;
+
+function TAuth.getToken(ServiceID : string; access_id : string; scope : array Of String; forwardIP : String; UseLocalTimeYN : bool; UseStaticIP : bool; UseGAIP : bool) : TToken;
 var
         xdate : String;
         target : String;
@@ -252,8 +268,7 @@ var
         response : string;
         http : olevariant;
 begin
-        if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/Token'
-                else url := ServiceURL_REAL + '/' + ServiceID + '/Token';
+        url := getTargetURL(UseStaticIP, UseGAIP) + '/' + ServiceID + '/Token';
 
         postdata := '"access_id":"'+access_id+'"';
 
@@ -326,13 +341,17 @@ begin
 end;
 
 function TAuth.getPartnerURL(bearerToken : String; ServiceID : String; TOGO : String) : String;
+begin
+  result := getPartnerURL(bearerToken, ServiceID, TOGO, false, false);
+end;
+
+function TAuth.getPartnerURL(bearerToken : String; ServiceID : String; TOGO : String; UseStaticIP : bool; UseGAIP : bool) : String;
 var
   url   : String;
   response : string;
   http : olevariant;
 begin
-        if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/URL?TG=' + TOGO
-                else url := ServiceURL_REAL + '/' + ServiceID + '/URL?TG=' + TOGO;
+        url := getTargetURL(UseStaticIP, UseGAIP) + '/' + ServiceID + '/URL?TG=' + TOGO;
 
         try
                 http := createoleobject('MSXML2.XMLHTTP.6.0');
@@ -356,16 +375,18 @@ begin
                 Result := getJSonString(response,'url');
         end;
 end;
-
 function TAuth.getBalance(bearerToken : String; ServiceID : String) : Double;
+begin
+  result := getBalance(bearerToken, ServiceID, false, false);
+end;
+
+function TAuth.getBalance(bearerToken : String; ServiceID : String; UseStaticIP : bool; UseGAIP : bool) : Double;
 var
   url   : String;
   response : string;
   http : olevariant;
 begin
-        if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/Point'
-                else url := ServiceURL_REAL + '/' + ServiceID + '/Point';
-
+        url := getTargetURL(UseStaticIP, UseGAIP) + '/' + ServiceID + '/Point';
         try
                 http := createoleobject('MSXML2.XMLHTTP.6.0');
                 http.open('GET', url);
@@ -389,15 +410,18 @@ begin
         end;
 end;
 
-
 function TAuth.getPartnerBalance(bearerToken : String; ServiceID : String) : Double;
+begin
+  result := getPartnerBalance(bearerToken, ServiceID, false, false);
+end;
+
+function TAuth.getPartnerBalance(bearerToken : String; ServiceID : String; UseStaticIP : bool; UseGAIP : bool) : Double;
 var
         url   : String;
         response : string;
         http : olevariant;
 begin
-        if FIsTest then url := ServiceURL_TEST + '/' + ServiceID + '/PartnerPoint'
-        else url := ServiceURL_REAL + '/' + ServiceID + '/PartnerPoint';
+        url := getTargetURL(UseStaticIP, UseGAIP) + '/' + ServiceID + '/PartnerPoint';
 
         try
                 http := createoleobject('MSXML2.XMLHTTP.6.0');
@@ -1702,6 +1726,13 @@ end;
 function IfThen(condition :boolean; trueVal :String ; falseVal : String) : string;
 begin
     if condition then result := trueVal else result := falseVal;
+end;
+
+function getTargetURL(UseStaticIP : bool; UseGAIP : bool) : String;
+begin
+        If UseGAIP Then result := ServiceURL_GA_REAL
+        Else If UseStaticIP Then result := ServiceURL_Static_REAL
+        else result := ServiceURL_REAL;
 end;
 
 end.
