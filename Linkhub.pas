@@ -6,11 +6,11 @@
 
 * For strongly secured communications, this module uses SSL/TLS with OpenSSL.
 *
-* http://www.linkhub.co.kr
-* Author : Kim Seongjun (pallet027@gmail.com)
-* Contributor : Jeong Yohan
+* https://www.linkhub.co.kr
+* Author : Kim Seongjun
+* Contributor : Jeong Yohan (code@linkhubcorp.com)
 * Written : 2014-03-22
-* Updated : 2021-06-15
+* Updated : 2022-04-07
 *
 * Update Log
 * - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
