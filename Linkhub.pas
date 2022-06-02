@@ -99,6 +99,7 @@ type
 
   TToken = class;
   ArrayOfString = Array Of String;
+  UTF8String = string;
 
   TAuth = class
   private
@@ -168,9 +169,11 @@ type
   function MD5(const Value: AnsiString): AnsiString;
   function EncodeBase64(const Value: AnsiString): String;
   function DecodeBase64(const Value: String): AnsiString;
+  function SHA1(const Value: AnsiString): AnsiString;
   function HMAC_SHA1(Text, Key: AnsiString): AnsiString;
   function skiptoSquareBracket(Data : String; index : integer) : integer;
   function getTargetURL(UseStaticIP : bool; UseGAIP : bool) : String;
+  function EncodeUTF8(const WS: WideString): UTF8String;    
 implementation
 
 destructor TToken.Destroy;
@@ -1121,7 +1124,7 @@ var
   SHA1Context: TSHA1Ctx;
 begin
   SHA1Init(SHA1Context);
-  SHA1Update(SHA1Context, Value);
+  SHA1Update(SHA1Context, EncodeUtf8(Value));
   Result := SHA1Final(SHA1Context);
 end;
 
@@ -1132,7 +1135,7 @@ var
   SHA1Context: TSHA1Ctx;
 begin
   if Length(Key) > 64 then
-    Key := SHA1(Key);
+  Key := SHA1(Key);
   ipad := AnsiString(StringOfChar(#$36, 64));
   opad := AnsiString(StringOfChar(#$5C, 64));
   for n := 1 to Length(Key) do
@@ -1354,6 +1357,21 @@ begin
 	Result := count+1;  // convert zero based index to byte count
 end;
 
+function EncodeUtf8(const WS: WideString): UTF8String;
+var
+        L: Integer;
+        Temp: UTF8String;
+begin
+        Result := '';
+        if WS = '' then Exit;
+        SetLength(Temp, Length(WS)*3);
+        L := UnicodeToUtf8(PChar(Temp), Length(Temp)+1, PWideChar(WS), Length(WS));
+        if L > 0 then
+          SetLength(Temp, L-1)
+        else
+          Temp := '';
+        Result := Temp;
+end;
 
 function getJSonBoolean(Data : String; Key : String) : Boolean;
 var
