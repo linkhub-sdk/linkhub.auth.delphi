@@ -119,7 +119,10 @@ type
   function getJSonInteger(Data : String; Key : String) : Integer;
   function getJSonFloat(Data : String; Key : String) : Double;
   function getJSonList(Data : String; Key : String) : ArrayOfString;
+  function getJSonListString(Data : String; Key : String) : ArrayOfString;
   function ParseJsonList(inputJson : String) : ArrayOfString;
+  function ParseTotalJsonList(inputJson : String) : ArrayOfString;
+  function skiptoSquareBracket(Data : String; index : integer) : integer;
   function IfThen(condition :boolean; trueVal :String ; falseVal : String) : string;
   function EscapeString(input : string) : string;
 implementation
@@ -557,6 +560,8 @@ function getJSonString(Data : String; Key : String) : String;
 var
         StartPos : integer;
 	EndPos : integer;
+        special : boolean;
+        i : Integer;
 begin
 	StartPos := Pos('"' + Key + '":',Data);
 
@@ -569,12 +574,18 @@ begin
                 StartPos := StartPos  + Length('"' + Key + '":');
                 if Copy(Data,StartPos,1) = '"' then StartPos := StartPos + 1;
 
-                //이건좀 문제가 있음. value안에 '"'가 있을경우 잘리는 문제가 있음.
-                EndPos := PosFrom('"',Data,StartPos);
-
-                while Copy(Data,EndPos-1,1) = '\' do
+                special := false;
+                
+                for EndPos:=StartPos to Length(Data) do
                 begin
-                         EndPos := PosFrom('"',Data,EndPos+1);
+                        if (Data[EndPos] = #92) and (not special) then
+                        begin
+                                special := true;
+                                continue;
+                        end;
+
+                        if (Data[EndPos] = '"') and (not special)then Break;
+                        special := false;
                 end;
 
                 if StartPos = EndPos then begin
@@ -582,6 +593,7 @@ begin
                 end
                 else begin
                         Result := UnescapeString(Copy(Data,StartPos,EndPos-StartPos));
+                        if Copy(Result,0,4) = 'null' then Result := '';
                 end;
         end;
 end;
@@ -669,13 +681,12 @@ begin
                 StartPos := StartPos  + Length('"' + Key + '":');
                 if Copy(Data,StartPos,1) = '[' then StartPos := StartPos + 1;
 
-                //이건좀 문제가 있음. value안에 ','가 있을경우 잘리는 문제가 있음.
-                EndPos := PosFrom(']',Data,StartPos);
-                //문서안에 '}'가 있으면 문제가 있어버림.
+                EndPos :=skiptoSquareBracket(Data,StartPos);
+
                 if EndPos = 0 then EndPos := PosFrom('}',Data,StartPos);
                 if EndPos = 0 then raise ELinkhubException.Create(-99999999,'JSON PARSING ERROR');
 
-                if Copy(Data,EndPos-1,1) = '"' then EndPos := EndPos - 1;
+                if Copy(Data,EndPos-1,1) = '"' then EndPos := EndPos;
 
                 if StartPos = EndPos then begin
                         targetJson := '';
@@ -687,18 +698,121 @@ begin
         end;
 end;
 
-function ParseJsonList(inputJson : String) : ArrayOfString;
+function getJSonListString(Data : String; Key : String) : ArrayOfString;
+var
+        StartPos : integer;
+	EndPos : integer;
+        targetJson : String;
+        count : integer;
+        i : integer;
+begin
+	StartPos := Pos('"' + Key + '":',Data);
+        EndPos := 0;
+
+        if StartPos = 0 then
+        begin
+                targetJson := '';
+        end
+        else
+        begin
+                StartPos := StartPos  + Length('"' + Key + '":');
+                if Copy(Data,StartPos,1) = '[' then StartPos := StartPos + 1;
+
+                count := 0;
+
+                for i := StartPos-1 to Length(Data) do
+                begin
+                        if Data[i] = '[' then
+                        begin
+                            count := count + 1;
+                            if count = 1 then startpos := i + 1;
+                        end;
+
+                        if Data[i] = ']' then
+                        begin
+                             count := count - 1;
+                             if count = 0 then endpos := i;
+                        end;
+                end;
+
+                if EndPos = 0 then EndPos := PosFrom('}',Data,StartPos);
+                if EndPos = 0 then raise ELinkhubException.Create(-99999999,'JSON PARSING ERROR');
+
+                if Copy(Data,EndPos-1,1) = '"' then EndPos := EndPos;
+
+                if StartPos = EndPos then begin
+                        targetJson := '';
+                end
+                else begin
+                        targetJson := Copy(Data,StartPos,EndPos-StartPos);
+                        result:= ParseTotalJsonList(targetJson);
+                end;
+        end;
+end;
+
+function ParseTotalJsonList(inputJson : String) : ArrayOfString;
 var
         i,level,startpos,endpos,count : integer;
-
+        comment : boolean;
 begin
         startpos := 0;
         count := 0;
         SetLength(result,count);
         level := 0;
+        comment := false;
 
         for i:=0 to Length(inputJson) do
         begin
+                if (inputJson[i] = '"') and ((i = 0) or (inputJson[i-1] <> #92)) then comment := not comment;
+                if comment then continue;
+                
+                if inputJson[i] = '{' then
+                begin
+                    level := level + 1;
+                    if level  = 1 then startpos := i;
+                end;
+
+                if inputJson[i] = '}' then
+                begin
+                    level := level - 1;
+                    if level  = 0 then
+                    begin
+                         count := count + 1;
+                         SetLength(result,count);
+                         endpos := i;
+                         result[count - 1 ] := Copy(inputJson,startpos,endpos-startpos + 1);
+                    end
+                end;
+        end;
+end;
+
+function ParseJsonList(inputJson : String) : ArrayOfString;
+var
+        delimiter, i,level,startpos,endpos,count : integer;
+        comment : boolean;
+        special : boolean;
+begin
+        startpos := 0;
+        count := 0;
+        SetLength(result,count);
+        level := 0;
+        comment := false;
+        special := false;
+
+        for i:=0 to Length(inputJson) do
+        begin
+                if comment and (inputJson[i] = #92) and (not special)then
+                begin
+                        special := true;
+                        continue;
+                end;
+
+                if ((inputJson[i] = '"') and (not special)) then comment := not comment;
+
+                special := false;
+                
+                if comment then continue;
+                        
                 if inputJson[i] = '{' then
                 begin
                     level := level + 1;
@@ -716,6 +830,64 @@ begin
                     end
                 end;
         end;
+
+        // '}' 가 포함되지 않은 경우 ["data", "data2"]
+        if count = 0 then
+        begin
+            delimiter := 1;
+            for i:=0 to Length(inputJson) do
+            begin
+
+                if inputJson[i] = '"' then
+                begin
+                        delimiter := delimiter mod 2;
+
+                        if delimiter = 1 then
+                        begin
+                            startpos := i + 1;
+                            delimiter := delimiter + 1;
+                            Continue;
+                        end;
+
+                        if delimiter = 0 then
+                        begin
+                            delimiter := delimiter + 1;
+                            endpos := i-1;
+                            count := count + 1;
+                            SetLength(result,count);
+                            result[count-1] := Copy(inputJson, startpos, endpos-startpos+1);
+                        end;
+
+                end;
+            end;
+        end;
+end;
+
+function skiptoSquareBracket(Data : String; index : integer) : integer;
+var
+        bComment : boolean;
+        llevel : integer;
+begin
+        bComment:=false;
+        llevel := 0;
+
+        while( index <= Length(Data) ) do
+        begin
+                case Data[index] of
+                       #92: index := index + 1;
+                       #34: bComment := not bComment;
+                       '[': if not bComment then llevel := llevel + 1;
+                       ']':
+                       begin
+                                if not bComment then
+                                begin
+                                        if llevel < 1 then break else llevel := llevel -1;
+                                end;
+                       end;
+                end;
+                index := index +1;
+        end;
+        result := index;
 end;
 
 function IfThen(condition :boolean; trueVal :String ; falseVal : String) : string;
