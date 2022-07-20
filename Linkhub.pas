@@ -10,7 +10,7 @@
 * Author : Kim Seongjun
 * Contributor : Jeong Yohan (code@linkhubcorp.com)
 * Written : 2014-03-22
-* Updated : 2022-06-02
+* Updated : 2022-07-20
 *
 * Update Log
 * - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
@@ -18,7 +18,7 @@
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2017-04-18) : fixed Double BackSlash String Parse bug
 * - (2017-08-29) : GetPartnerURL API added
-* - (2017-12-28) : fixed Compile Directive for Update version 
+* - (2017-12-28) : fixed Compile Directive for Update version
 *=================================================================================
 *)
 {$IFDEF FPC}
@@ -49,9 +49,11 @@ uses
 {$ENDIF}
 
 {$IFDEF CONDITIONALEXPRESSIONS}
-  {$IF System.CompilerVersion >= 24.0}
-    {$LEGACYIFEND ON}
+  {$IF System.CompilerVersion >= 23.0}
     {$DEFINE COMPILER15_UP}
+      {$IF System.CompilerVersion >= 24.0}
+        {$LEGACYIFEND ON}
+      {$IFEND}
   {$IFEND}
   {$IF System.CompilerVersion <= 19.0 }
     {$IF System.CompilerVersion >= 14.0 }
@@ -59,7 +61,6 @@ uses
     {$IFEND}
   {$IFEND}
 {$ENDIF}
-
 const
   ServiceURL_REAL = 'https://auth.linkhub.co.kr';
   ServiceURL_Static_REAL = 'https://static-auth.linkhub.co.kr';
@@ -99,7 +100,7 @@ type
 
   TToken = class;
   ArrayOfString = Array Of String;
-  UTF8String = string;
+  UTF8String = AnsiString;
 
   TAuth = class
   private
@@ -173,7 +174,7 @@ type
   function HMAC_SHA1(Text, Key: AnsiString): AnsiString;
   function skiptoSquareBracket(Data : String; index : integer) : integer;
   function getTargetURL(UseStaticIP : bool; UseGAIP : bool) : String;
-  function EncodeUTF8(const WS: WideString): UTF8String;    
+  function EncodeUTF8(const WS: WideString): UTF8String;
 implementation
 
 destructor TToken.Destroy;
@@ -306,7 +307,7 @@ begin
                 target := target + '/'+ServiceID+'/Token';
 
                 bearerToken := EncodeBase64(HMAC_SHA1(target,DecodeBase64( FSecretKey)));
-        
+
                 http := createoleobject('MSXML2.XMLHTTP.6.0');
                 http.open('POST',url);
 
@@ -323,10 +324,10 @@ begin
                 On E : Exception do
                         raise ELinkhubException.Create(-99999999, 'Fail to GetToken() - ['+ E.ClassName + '] '+ E.Message);
         end;
-                
+
 
         response := http.responsetext;
-        
+
         if http.Status <> 200 then
         begin
                 raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
@@ -368,7 +369,7 @@ begin
         end;
 
         response := http.responsetext;
-        
+
         if http.Status <> 200 then
         begin
                 raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
@@ -402,7 +403,7 @@ begin
         end;
 
         response := http.responsetext;
-        
+
         if http.Status <> 200 then
         begin
                 raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
@@ -438,7 +439,7 @@ begin
         end;
 
         response := http.responsetext;
-        
+
         if http.Status <> 200 then
         begin
                 raise ELinkhubException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
@@ -1364,12 +1365,16 @@ var
 begin
         Result := '';
         if WS = '' then Exit;
+        {$IFDEF COMPILER15_UP}
+        Temp := UTF8Encode(WS);
+        {$ELSE}
         SetLength(Temp, Length(WS)*3);
         L := UnicodeToUtf8(PChar(Temp), Length(Temp)+1, PWideChar(WS), Length(WS));
         if L > 0 then
           SetLength(Temp, L-1)
         else
           Temp := '';
+        {$ENDIF}
         Result := Temp;
 end;
 
@@ -1425,7 +1430,7 @@ begin
                 if Copy(Data,StartPos,1) = '"' then StartPos := StartPos + 1;
 
                 special := false;
-                
+
                 for EndPos:=StartPos to Length(Data) do
                 begin
                         if (Data[EndPos] = #92) and (not special) then
@@ -1615,7 +1620,7 @@ begin
         begin
                 if (inputJson[i] = '"') and ((i = 0) or (inputJson[i-1] <> #92)) then comment := not comment;
                 if comment then continue;
-                
+
                 if inputJson[i] = '{' then
                 begin
                     level := level + 1;
@@ -1661,9 +1666,9 @@ begin
                 if ((inputJson[i] = '"') and (not special)) then comment := not comment;
 
                 special := false;
-                
+
                 if comment then continue;
-                        
+
                 if inputJson[i] = '{' then
                 begin
                     level := level + 1;
