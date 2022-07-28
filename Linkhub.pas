@@ -10,7 +10,7 @@
 * Author : Kim Seongjun
 * Contributor : Jeong Yohan (code@linkhubcorp.com)
 * Written : 2014-03-22
-* Updated : 2022-07-20
+* Updated : 2022-07-25
 *
 * Update Log
 * - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
@@ -227,6 +227,7 @@ begin
                         http := createoleobject('MSXML2.XMLHTTP.6.0');
                         http.open('GET',url);
                         http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                        http.setRequestHeader('User-Agent','DELPHI LINKHUB SDK');
                         http.send;
                 except
                         On E : Exception do
@@ -314,6 +315,7 @@ begin
                 http.setRequestHeader('x-lh-date', xdate);
                 http.setRequestHeader('x-lh-version', '1.0');
                 http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.setRequestHeader('User-Agent','DELPHI LINKHUB SDK');
                 if forwardIP <> '' then HTTP.setRequestHeader('x-lh-forwarded',forwardIP);
                 http.setRequestHeader('Authorization', 'LINKHUB ' + FLinkID + ' ' + bearerToken);
 
@@ -362,6 +364,7 @@ begin
                 http.open('GET', url);
                 http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
                 http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.setRequestHeader('User-Agent','DELPHI LINKHUB SDK');
                 http.send;
         except
                 On E : Exception do
@@ -396,6 +399,7 @@ begin
                 http.open('GET', url);
                 http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
                 http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.setRequestHeader('User-Agent','DELPHI LINKHUB SDK');
                 http.send;
         except
                 On E : Exception do
@@ -432,6 +436,7 @@ begin
                 http.open('GET',url);
                 http.setRequestHeader('Authorization', 'Bearer ' + bearerToken);
                 http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.setRequestHeader('User-Agent','DELPHI LINKHUB SDK');
                 http.send;
         except
                 On E : Exception do
