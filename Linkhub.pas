@@ -10,7 +10,7 @@
 * Author : Kim Seongjun
 * Contributor : Jeong Yohan (code@linkhubcorp.com)
 * Written : 2014-03-22
-* Updated : 2022-07-25
+* Updated : 2022-10-06
 *
 * Update Log
 * - (2016-10-28) : added Double Byte Code System Character delimiter function on EscapeString()
@@ -19,6 +19,7 @@
 * - (2017-04-18) : fixed Double BackSlash String Parse bug
 * - (2017-08-29) : GetPartnerURL API added
 * - (2017-12-28) : fixed Compile Directive for Update version
+* - (2022-10-06) : add function getJSonIntegerToString
 *=================================================================================
 *)
 {$IFDEF FPC}
@@ -160,6 +161,7 @@ type
   function getJSonString(Data : String; Key : String) : String;
   function getJSonBoolean(Data : String; Key : String) : Boolean;
   function getJSonInteger(Data : String; Key : String) : Integer;
+  function getJSonIntegerToString(Data : String; Key : String) : String;
   function getJSonFloat(Data : String; Key : String) : Double;
   function getJSonList(Data : String; Key : String) : ArrayOfString;
   function getJSonListString(Data : String; Key : String) : ArrayOfString;
@@ -1487,6 +1489,39 @@ begin
                 else begin
                         val := Copy(Data,StartPos,EndPos-StartPos);
                         result := StrToInt(val);
+                end;
+        end;
+end;
+
+function getJSonIntegerToString(Data : String; Key : String) : String;
+var
+        StartPos : integer;
+	EndPos : integer;
+        val : String;
+begin
+	StartPos := Pos('"' + Key + '":',Data);
+
+        if StartPos = 0 then
+        begin
+                Result := '';
+        end
+        else
+        begin
+                StartPos := StartPos  + Length('"' + Key + '":');
+                if Copy(Data,StartPos,1) = '"' then StartPos := StartPos + 1;
+
+                EndPos := PosFrom(',',Data,StartPos);
+                if EndPos = 0 then EndPos := posFrom('}',Data,StartPos);
+                if EndPos = 0 then Raise ELinkhubException.Create(-99999999,'malformed json');
+
+                EndPos := EndPos;
+
+                if StartPos = EndPos then begin
+                        Result := '';
+                end
+                else begin
+                        Result := UnescapeString(Copy(Data,StartPos,EndPos-StartPos));
+                        if Copy(Result,0,4) = 'null' then Result := '';
                 end;
         end;
 end;
